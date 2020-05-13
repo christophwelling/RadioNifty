@@ -115,18 +115,24 @@ def plot_reco(
 
     trace_stat_calculator = ift.StatCalculator()
     efield_stat_calculator = ift.StatCalculator()
+    amp_trace_stat_calculator = ift.StatCalculator()
+    amp_efield_stat_calculator = ift.StatCalculator()
     median = KL.position
     ax1_1.plot(times, efield_trace, c='C1', label='MC truth')
     ax1_2.plot(freqs, np.abs(fft.time2freq(efield_trace, sampling_rate)), c='C1')
     for sample in KL.samples:
         channel_sample_trace = channel_trace_operator.force(median + sample).val
         trace_stat_calculator.add(channel_sample_trace)
+        amp_trace = np.abs(fft.time2freq(channel_sample_trace, sampling_rate))
+        amp_trace_stat_calculator.add(amp_trace)
         ax1_3.plot(times, channel_sample_trace, c='k', alpha=.2)
-        ax1_4.plot(freqs, np.abs(fft.time2freq(channel_sample_trace, sampling_rate)), c='k', alpha=.2)
+        ax1_4.plot(freqs, amp_trace, c='k', alpha=.2)
         efield_sample_trace = efield_trace_operator.force(median + sample).val
         efield_stat_calculator.add(efield_sample_trace)
+        amp_efield = np.abs(fft.time2freq(efield_sample_trace, sampling_rate))
+        amp_efield_stat_calculator.add(amp_efield)
         ax1_1.plot(times, efield_sample_trace, c='k', alpha=.2)
-        ax1_2.plot(freqs, np.abs(fft.time2freq(efield_sample_trace, sampling_rate)), c='k', alpha=.2)
+        ax1_2.plot(freqs, amp_efield, c='k', alpha=.2)
 
     ax1_3.plot(times, noiseless_trace, c='C1', label='MC truth')
     ax1_3.plot(times, voltage_trace, c='C0', alpha=.2)
@@ -139,10 +145,10 @@ def plot_reco(
 
     ax1_1.plot(times, efield_stat_calculator.mean, c='C2', label='max. posterior')
     ax1_1.plot(times, classic_efield_trace, c='C0', alpha=.5, label='classic reco')
-    ax1_2.plot(freqs, np.abs(fft.time2freq(efield_stat_calculator.mean, sampling_rate)), c='C2')
+    ax1_2.plot(freqs, amp_efield_stat_calculator.mean, c='C2')
     ax1_2.plot(freqs, np.abs(fft.time2freq(classic_efield_trace, sampling_rate)), c='C0', alpha=.5)
     ax1_3.plot(times, trace_stat_calculator.mean, c='C2', label='max. posterior')
-    ax1_4.plot(freqs, np.abs(fft.time2freq(trace_stat_calculator.mean, sampling_rate)), c='C2')
+    ax1_4.plot(freqs, amp_trace_stat_calculator.mean, c='C2')
 
     ax1_1.set_ylim([1.5*np.min(efield_trace), 1.5*np.max(efield_trace)])
     ax1_2.set_ylim([0, 1.5*np.max(np.abs(fft.time2freq(efield_trace, sampling_rate)))])
