@@ -28,9 +28,9 @@ amp_dct = {
     'k0': 1.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
-    'sm': -5.2,  # preferred power-law slope
-    'sv': .1,  # low variance of power-law slope
-    'im':  -3.,  # y-intercept mean, in-/decrease for more/less contrast
+    'sm': -4.,  # preferred power-law slope
+    'sv': .5,  # low variance of power-law slope
+    'im':  -2.5,  # y-intercept mean, in-/decrease for more/less contrast
     'iv': 2.     # y-intercept variance
 }
 phase_dct = {
