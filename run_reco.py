@@ -28,10 +28,10 @@ amp_dct = {
     'k0': 1.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
-    'sm': -5.2,  # preferred power-law slope
-    'sv': .1,  # low variance of power-law slope
-    'im':  1.,  # y-intercept mean, in-/decrease for more/less contrast
-    'iv': .4     # y-intercept variance
+    'sm': -4.,  # preferred power-law slope
+    'sv': .5,  # low variance of power-law slope
+    'im':  -2.5,  # y-intercept mean, in-/decrease for more/less contrast
+    'iv': 2.     # y-intercept variance
 }
 phase_dct = {
     'sm': 3.6,
@@ -99,42 +99,44 @@ plotting.plot_priors(
 )
 
 
-if max_posterior:
-    ic_newton = ift.DeltaEnergyController(name='newton', iteration_limit=1000, tol_rel_deltaE=1e-9)
-    minimizer = ift.NewtonCG(ic_newton)
-    ic_sampling = ift.GradientNormController(iteration_limit=1000)
-    H = ift.StandardHamiltonian(likelihood, ic_sampling)
-    position = ift.from_random('normal', H.domain)
-    for j in range(5):
-        H = ift.StandardHamiltonian(likelihood, ic_sampling)
-        H = ift.EnergyAdapter(position, H, want_metric=True)
-        H, convergence = minimizer(H)
-        plotting.plot_max_posterior(
-            H,
-            efield_trace,
-            noiseless_trace,
-            voltage_trace,
-            classic_efield_trace,
-            efield_trace_operator,
-            channel_trace_operator,
-            sampling_rate,
-            'plots/max_posterior_reco_{}.png'.format(j)
-        )
-        median = H.position
-        position = H.position
-ic_newton = ift.DeltaEnergyController(name='newton', iteration_limit=100, tol_rel_deltaE=1e-7)
-minimizer = ift.NewtonCG(ic_newton)
-ic_sampling = ift.GradientNormController(iteration_limit=3000)
+ic_sampling = ift.GradientNormController(1E-12, iteration_limit=min(1000, likelihood.domain.size))
 H = ift.StandardHamiltonian(likelihood, ic_sampling)
+
+if max_posterior:
+    ic_newton = ift.DeltaEnergyController(name='newton',
+                                          iteration_limit=1000,
+                                          tol_rel_deltaE=1e-9,
+                                          convergence_level=3)
+    minimizer = ift.NewtonCG(ic_newton)
+    median = ift.from_random('normal', H.domain)
+    Ha = ift.EnergyAdapter(median, H, want_metric=True)
+    Ha, convergence = minimizer(Ha)
+    plotting.plot_max_posterior(
+        Ha,
+        efield_trace,
+        noiseless_trace,
+        voltage_trace,
+        classic_efield_trace,
+        efield_trace_operator,
+        channel_trace_operator,
+        sampling_rate,
+            'plots/max_posterior_reco.png'
+    )
+    median = Ha.position
+ic_newton = ift.DeltaEnergyController(name='newton',
+                                      iteration_limit=100,
+                                      tol_rel_deltaE=1e-7,
+                                      convergence_level=3)
+minimizer = ift.NewtonCG(ic_newton)
 if not max_posterior:
     median = ift.MultiField.full(H.domain, 0.)
 N_iterations = 30
-N_samples = 30
+N_samples = 15
 
 
 for k in range(N_iterations):
     print('----------->>>   {}   <<<-----------'.format(k))
-    KL = ift.MetricGaussianKL(median, H, N_samples)
+    KL = ift.MetricGaussianKL(median, H, N_samples, mirror_samples=True)
     KL, convergence = minimizer(KL)
     median = KL.position
     plotting.plot_reco(
