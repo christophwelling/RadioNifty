@@ -29,7 +29,7 @@ def get_likelihood(
     pd = zero_padder.adjoint @ correlated_field
     domain_flipper = domainFlipper.DomainFlipper(pd.target, target = ift.RGSpace(small_sp.shape, harmonic=True))
     mag_S_h =  (domain_flipper @ zero_padder.adjoint @ correlated_field)
-    phi_S_h = phase_operator.SlopeSpectrumOperator(frequency_domain.get_default_codomain(), phase_dct['sm'], phase_dct['sv'], phase_dct['im'], phase_dct['iv'])
+    phi_S_h = phase_operator.SlopeSpectrumOperator(frequency_domain.get_default_codomain(), phase_dct['sm'], phase_dct['im'], phase_dct['sv'], phase_dct['iv'])
     efield_spec_operator = (filter_operator @ realizer2.adjoint @ mag_S_h.exp()) * (1.j*realizer2.adjoint @ phi_S_h).exp()
     efield_trace_operator = realizer @ fft_operator.inverse @ efield_spec_operator
 
