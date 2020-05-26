@@ -24,11 +24,11 @@ amp_dct = {
     'n_pix': 32,  #spectral bins
 
     # Spectral smoothness (affects Gaussian process part)
-    'a':  .1,  # relatively high variance of spectral curbvature
-    'k0': .1,  # quefrency mode below which cepstrum flattens
+    'a':  1E-4,  # relatively high variance of spectral curbvature
+    'k0': 1.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
-    'sm': -4.,  # preferred power-law slope
+    'sm': -3.,  # preferred power-law slope
     'sv': 1.,  # low variance of power-law slope
     'im':  2.,  # y-intercept mean, in-/decrease for more/less contrast
     'iv':  1.     # y-intercept variance
@@ -76,7 +76,7 @@ filter_operator = hardware_operator.get_filter_operator(
 )
 
 fft_operator = ift.FFTOperator(frequency_domain.get_default_codomain())
-noise_operator = ift.ScalingOperator(noise_level, frequency_domain.get_default_codomain())
+noise_operator = ift.ScalingOperator(noise_level**2, frequency_domain.get_default_codomain())
 
 likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator = likelihood.get_likelihood(
     amp_dct,
@@ -123,7 +123,7 @@ if max_posterior:
     )
     median = Ha.position
 ic_newton = ift.DeltaEnergyController(name='newton',
-                                      iteration_limit=10,
+                                      iteration_limit=30,
                                       tol_rel_deltaE=1e-7,
                                       convergence_level=3)
 minimizer = ift.NewtonCG(ic_newton)
