@@ -10,10 +10,10 @@ import hardware_operator
 import likelihood
 
 
-max_posterior = True
+max_posterior = False
 energy = 1.e18 * units.eV
 medium = NuRadioMC.utilities.medium.get_ice_model('greenland_simple')
-viewing_angle = 5. * units.deg
+viewing_angle = 1. * units.deg
 samples = 128
 sampling_rate = 1. * units.GHz
 model = 'ARZ2019'
