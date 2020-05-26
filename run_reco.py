@@ -10,7 +10,7 @@ import hardware_operator
 import likelihood
 
 
-max_posterior = False
+max_posterior = True
 energy = 1.e18 * units.eV
 medium = NuRadioMC.utilities.medium.get_ice_model('greenland_simple')
 viewing_angle = 5. * units.deg
@@ -98,7 +98,7 @@ plotting.plot_priors(
     'plots/priors.png'
 )
 
-ic_sampling = ift.GradientNormController(1E-4, iteration_limit=min(1000, likelihood.domain.size))
+ic_sampling = ift.GradientNormController(1E-8, iteration_limit=min(1000, likelihood.domain.size))
 H = ift.StandardHamiltonian(likelihood, ic_sampling)
 
 if max_posterior:
