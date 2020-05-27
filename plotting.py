@@ -51,9 +51,8 @@ def plot_priors(
     ax1_4 = fig1.add_subplot(425)
     ax1_5 = fig1.add_subplot(426)
     ax1_6 = fig1.add_subplot(4,2,(7,8))
-    realizer = ift.Realizer(efield_trace_operator.target)
-    real_efield_spec_operator = fft_operator @ realizer @ efield_trace_operator
-    real_channel_spec_operator =  fft_operator @ realizer @ channel_trace_operator
+    real_efield_spec_operator = fft_operator @ efield_trace_operator
+    real_channel_spec_operator =  fft_operator @ channel_trace_operator
     freq_space = efield_spec_operator.target[0]
     for i in range(10):
         x = ift.from_random('normal', efield_spec_operator.domain)

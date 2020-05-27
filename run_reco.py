@@ -10,7 +10,7 @@ import hardware_operator
 import likelihood
 
 
-max_posterior = True
+max_posterior = False
 energy = 1.e18 * units.eV
 medium = NuRadioMC.utilities.medium.get_ice_model('greenland_simple')
 viewing_angle = 1. * units.deg
@@ -18,20 +18,20 @@ samples = 128
 sampling_rate = 1. * units.GHz
 model = 'ARZ2019'
 shower_type = 'HAD'
-noise_level = .2
+noise_level = .1
 passband = [120*units.MHz, 500*units.MHz]
 amp_dct = {
-    'n_pix': 32,  # 64 spectral bins
+    'n_pix': 32,  #spectral bins
 
     # Spectral smoothness (affects Gaussian process part)
-    'a': 1.8,  # relatively high variance of spectral curbvature
+    'a':  1E-4,  # relatively high variance of spectral curbvature
     'k0': 1.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
-    'sm': -4.,  # preferred power-law slope
-    'sv': .5,  # low variance of power-law slope
-    'im':  -2.5,  # y-intercept mean, in-/decrease for more/less contrast
-    'iv': 2.     # y-intercept variance
+    'sm': -3.,  # preferred power-law slope
+    'sv': 1.,  # low variance of power-law slope
+    'im':  2.,  # y-intercept mean, in-/decrease for more/less contrast
+    'iv':  1.     # y-intercept variance
 }
 phase_dct = {
     'sm': 3.6,
@@ -76,7 +76,7 @@ filter_operator = hardware_operator.get_filter_operator(
 )
 
 fft_operator = ift.FFTOperator(frequency_domain.get_default_codomain())
-noise_operator = ift.ScalingOperator(noise_level, frequency_domain.get_default_codomain())
+noise_operator = ift.ScalingOperator(noise_level**2, frequency_domain.get_default_codomain())
 
 likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator = likelihood.get_likelihood(
     amp_dct,
@@ -98,8 +98,7 @@ plotting.plot_priors(
     'plots/priors.png'
 )
 
-
-ic_sampling = ift.GradientNormController(1E-12, iteration_limit=min(1000, likelihood.domain.size))
+ic_sampling = ift.GradientNormController(1E-8, iteration_limit=min(1000, likelihood.domain.size))
 H = ift.StandardHamiltonian(likelihood, ic_sampling)
 
 if max_posterior:
@@ -124,7 +123,7 @@ if max_posterior:
     )
     median = Ha.position
 ic_newton = ift.DeltaEnergyController(name='newton',
-                                      iteration_limit=100,
+                                      iteration_limit=30,
                                       tol_rel_deltaE=1e-7,
                                       convergence_level=3)
 minimizer = ift.NewtonCG(ic_newton)
