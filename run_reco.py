@@ -13,34 +13,35 @@ import likelihood
 max_posterior = False
 energy = 1.e18 * units.eV
 medium = NuRadioMC.utilities.medium.get_ice_model('greenland_simple')
-viewing_angle = 1. * units.deg
+viewing_angle = .5 * units.deg
 samples = 128
 sampling_rate = 1. * units.GHz
 model = 'ARZ2019'
-shower_type = 'HAD'
+shower_type = 'EM'
 noise_level = .1
 passband = [120*units.MHz, 500*units.MHz]
+np.random.seed(42)
 amp_dct = {
     'n_pix': 32,  #spectral bins
 
     # Spectral smoothness (affects Gaussian process part)
-    'a':  1E-4,  # relatively high variance of spectral curbvature
+    'a':  1.e-4,  # relatively high variance of spectral curbvature
     'k0': 1.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
-    'sm': -3.,  # preferred power-law slope
+    'sm': -3.5,  # preferred power-law slope
     'sv': 1.,  # low variance of power-law slope
     'im':  2.,  # y-intercept mean, in-/decrease for more/less contrast
     'iv':  1.     # y-intercept variance
 }
 phase_dct = {
     'sm': 3.6,
-    'sv': .1,
+    'sv': .2,
     'im': 0.,
-    'iv': .5
+    'iv': 1.5
 }
 
-efield_trace, noiseless_trace, voltage_trace, classic_efield_trace = generate_data.get_traces(
+efield_trace, noiseless_trace, voltage_trace, classic_efield_trace, noise_rms = generate_data.get_traces(
     energy = energy,
     viewing_angle = viewing_angle,
     samples = samples,
@@ -56,6 +57,7 @@ plotting.plot_data(
     noiseless_trace,
     voltage_trace,
     sampling_rate,
+    noise_rms,
     'plots/data.png'
 )
 
@@ -76,9 +78,9 @@ filter_operator = hardware_operator.get_filter_operator(
 )
 
 fft_operator = ift.FFTOperator(frequency_domain.get_default_codomain())
-noise_operator = ift.ScalingOperator(noise_level**2, frequency_domain.get_default_codomain())
+noise_operator = ift.ScalingOperator(noise_rms**2, frequency_domain.get_default_codomain())
 
-likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator = likelihood.get_likelihood(
+likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator, power_operator = likelihood.get_likelihood(
     amp_dct,
     phase_dct,
     frequency_domain,
@@ -95,6 +97,7 @@ plotting.plot_priors(
     channel_spec_operator,
     channel_trace_operator,
     fft_operator,
+    power_operator,
     'plots/priors.png'
 )
 
@@ -123,16 +126,16 @@ if max_posterior:
     )
     median = Ha.position
 ic_newton = ift.DeltaEnergyController(name='newton',
-                                      iteration_limit=30,
-                                      tol_rel_deltaE=1e-7,
+                                      iteration_limit=500,
+                                      tol_rel_deltaE=1e-9,
                                       convergence_level=3)
 minimizer = ift.NewtonCG(ic_newton)
 if not max_posterior:
     median = ift.MultiField.full(H.domain, 0.)
 N_iterations = 30
-N_samples = 15
+N_samples = 30
 
-
+energies = []
 for k in range(N_iterations):
     print('----------->>>   {}   <<<-----------'.format(k))
     KL = ift.MetricGaussianKL(median, H, N_samples, mirror_samples=True)
@@ -147,5 +150,11 @@ for k in range(N_iterations):
         efield_trace_operator,
         channel_trace_operator,
         sampling_rate,
+        noise_rms,
         'plots/reco_{}.png'.format(k)
+    )
+    energies.append(KL.value)
+    plotting.plot_energies(
+        energies,
+        'plots/energies.png'
     )

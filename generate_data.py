@@ -27,7 +27,8 @@ def get_traces(
         shower_type = shower_type,
         n_index = ior,
         R = 1000.,
-        model = model
+        model = model,
+        seed=None
     )
 
     antenna_pattern_provider = NuRadioReco.detector.antennapattern.AntennaPatternProvider()
@@ -68,5 +69,7 @@ def get_traces(
     noiseless_trace /= trace_max
     voltage_trace /= trace_max
     classic_efield_trace /= trace_max
+    noise /= trace_max
+    noise_rms = np.sqrt(np.mean(noise**2))
 
-    return efield_trace, noiseless_trace, voltage_trace, classic_efield_trace
+    return efield_trace, noiseless_trace, voltage_trace, classic_efield_trace, noise_rms

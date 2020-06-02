@@ -68,4 +68,4 @@ def get_likelihood(
     likelihood = ift.GaussianEnergy(mean=data_field, inverse_covariance=noise_operator.inverse)(channel_trace_operator)
 
 
-    return likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator
+    return likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator, A
