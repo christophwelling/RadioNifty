@@ -37,8 +37,8 @@ def get_likelihood(
     hardware_operator,
     filter_operator,
     fft_operator,
-    noise_operator,
-    data_trace
+    data_traces,
+    noise_levels
     ):
 
     power_domain = ift.RGSpace(large_frequency_domain.get_default_codomain().shape[0], harmonic=True)
@@ -58,14 +58,20 @@ def get_likelihood(
     phi_S_h = phase_operator.SlopeSpectrumOperator(frequency_domain.get_default_codomain(), phase_dct['sm'], phase_dct['im'], phase_dct['sv'], phase_dct['iv'])
     phi_S_h = realizer2.adjoint @ phi_S_h
 
+
     efield_spec_operator = filter_operator @ (mag_S_h * (1.j*phi_S_h).exp())
     efield_trace_operator = realizer @ fft_operator.inverse @ efield_spec_operator
 
     channel_spec_operator = hardware_operator @ efield_spec_operator
     channel_trace_operator = realizer @ fft_operator.inverse @ channel_spec_operator
 
-    data_field = ift.Field(ift.DomainTuple.make(frequency_domain.get_default_codomain()), data_trace)
-    likelihood = ift.GaussianEnergy(mean=data_field, inverse_covariance=noise_operator.inverse)(channel_trace_operator)
-
+    likelihood = None
+    for i_trace, data_trace in enumerate(data_traces):
+        noise_operator = ift.ScalingOperator(noise_levels[i_trace]**2, frequency_domain.get_default_codomain())
+        data_field = ift.Field(ift.DomainTuple.make(frequency_domain.get_default_codomain()), data_trace)
+        if likelihood is None:
+            likelihood = ift.GaussianEnergy(mean=data_field, inverse_covariance=noise_operator.inverse)(channel_trace_operator)
+        else:
+            likelihood += ift.GaussianEnergy(mean=data_field, inverse_covariance=noise_operator.inverse)(channel_trace_operator)
 
     return likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator, A

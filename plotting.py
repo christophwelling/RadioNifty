@@ -6,36 +6,36 @@ from NuRadioReco.utilities import fft
 def plot_data(
         efield_trace,
         noiseless_trace,
-        voltage_trace,
+        voltage_traces,
         sampling_rate,
-        noise_level,
+        noise_levels,
         filename
     ):
-    times = np.arange(len(voltage_trace))/sampling_rate
-    freqs = np.fft.rfftfreq(len(voltage_trace), 1./sampling_rate)
-
-    fig1 = plt.figure(figsize=(8,8))
-    ax1_1 = fig1.add_subplot(221)
-    ax1_2 = fig1.add_subplot(222)
-    ax1_3 = fig1.add_subplot(223)
-    ax1_4 = fig1.add_subplot(224)
+    times = np.arange(voltage_traces.shape[1])/sampling_rate
+    freqs = np.fft.rfftfreq(voltage_traces.shape[1], 1./sampling_rate)
+    fig1 = plt.figure(figsize=(8,4 + 4 * voltage_traces.shape[0]))
+    ax1_1 = fig1.add_subplot(voltage_traces.shape[0]+1, 2, 1)
+    ax1_2 = fig1.add_subplot(voltage_traces.shape[0]+1, 2, 2)
 
     ax1_1.plot(times, efield_trace, c='C1')
     ax1_2.plot(freqs, np.abs(fft.time2freq(efield_trace, sampling_rate)), c='C1')
-    ax1_3.plot(times, noiseless_trace, c='C1', alpha=1.)
-    ax1_3.plot(times, voltage_trace, c='C0', alpha=.5)
-    ax1_3.scatter(times, voltage_trace, c='C0')
-    ax1_4.plot(freqs, np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C1')
-    ax1_4.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', alpha=.2)
-    ax1_4.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0')
-
     ax1_1.grid()
     ax1_2.grid()
-    ax1_3.grid()
-    ax1_4.grid()
-    snr_1 = .5 * (np.max(voltage_trace) - np.min(voltage_trace)) / noise_level
-    snr_2 = .5 * (np.max(noiseless_trace) - np.min(noiseless_trace)) / noise_level
-    ax1_3.text(.7, .95, 'SNR={:.1f}/{:.1f}'.format(snr_1, snr_2), transform=ax1_3.transAxes)
+
+    for i_trace, voltage_trace in enumerate(voltage_traces):
+        ax1_3 = fig1.add_subplot(voltage_traces.shape[0]+1, 2, 2*i_trace + 3)
+        ax1_4 = fig1.add_subplot(voltage_traces.shape[0]+1, 2, 2*i_trace + 4)
+        ax1_3.plot(times, noiseless_trace, c='C1', alpha=1.)
+        ax1_3.plot(times, voltage_trace, c='C0', alpha=.5)
+        ax1_3.scatter(times, voltage_trace, c='C0')
+        ax1_4.plot(freqs, np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C1')
+        ax1_4.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', alpha=.2)
+        ax1_4.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0')
+        ax1_3.grid()
+        ax1_4.grid()
+        snr_1 = .5 * (np.max(voltage_trace) - np.min(voltage_trace)) / noise_levels[i_trace]
+        snr_2 = .5 * (np.max(noiseless_trace) - np.min(noiseless_trace)) / noise_levels[i_trace]
+        ax1_3.text(.7, .95, 'SNR={:.1f}/{:.1f}'.format(snr_1, snr_2), transform=ax1_3.transAxes)
     fig1.tight_layout()
     fig1.savefig(filename)
 
@@ -107,27 +107,23 @@ def plot_reco(
     KL,
     efield_trace,
     noiseless_trace,
-    voltage_trace,
+    voltage_traces,
     classic_efield_trace,
     efield_trace_operator,
     channel_trace_operator,
     sampling_rate,
-    noise_rms,
+    noise_levels,
     filename
     ):
     plt.close('all')
-    times = np.arange(len(voltage_trace))/sampling_rate
-    freqs = np.fft.rfftfreq(len(voltage_trace), 1./sampling_rate)
+    times = np.arange(voltage_traces.shape[1])/sampling_rate
+    freqs = np.fft.rfftfreq(voltage_traces.shape[1], 1./sampling_rate)
 
-    fig1 = plt.figure(figsize=(12,10))
-    ax1_1 = fig1.add_subplot(4,3,(1,4))
-    ax1_2 = fig1.add_subplot(4,3,(2,5))
-    ax1_3 = fig1.add_subplot(4,3,(7,10))
-    ax1_4 = fig1.add_subplot(4,3,(8,11))
-    ax1_5 = fig1.add_subplot(4,3,3)
-    ax1_6 = fig1.add_subplot(4,3,6)
-    ax1_7 = fig1.add_subplot(4,3,9)
-    ax1_8 = fig1.add_subplot(4,3,12)
+    fig1 = plt.figure(figsize=(12,4 + 4*voltage_traces.shape[0]))
+    ax1_1 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,(1,4))
+    ax1_2 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,(2,5))
+    ax1_5 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,3)
+    ax1_6 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,6)
 
     trace_stat_calculator = ift.StatCalculator()
     efield_stat_calculator = ift.StatCalculator()
@@ -142,7 +138,7 @@ def plot_reco(
         amp_trace = np.abs(fft.time2freq(channel_sample_trace, sampling_rate))
         amp_trace_stat_calculator.add(amp_trace)
         #ax1_3.plot(times, channel_sample_trace, c='k', alpha=.1)
-        ax1_4.plot(freqs, amp_trace, c='k', alpha=.1)
+        #ax1_4.plot(freqs, amp_trace, c='k', alpha=.1)
         efield_sample_trace = efield_trace_operator.force(median + sample).val
         efield_stat_calculator.add(efield_sample_trace)
         amp_efield = np.abs(fft.time2freq(efield_sample_trace, sampling_rate))
@@ -150,27 +146,12 @@ def plot_reco(
         #ax1_1.plot(times, efield_sample_trace, c='k', alpha=.1)
         ax1_2.plot(freqs, amp_efield, c='k', alpha=.1)
 
-    ax1_3.plot(times, noiseless_trace, c='C1', label='MC truth', linewidth=5, zorder=0)
-    ax1_3.plot(times, voltage_trace, c='C0', alpha=.2, zorder=10)
-    ax1_3.scatter(times, voltage_trace, c='C0', label='data', zorder=10)
-
-    ax1_4.plot(freqs, np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C1', linewidth=5, zorder=0)
-    ax1_4.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', alpha=.2, zorder=10)
-    ax1_4.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', zorder=10)
-
-
     ax1_1.plot(times, efield_stat_calculator.mean, c='C2', label='max. posterior')
     ax1_1.plot(times, classic_efield_trace, c='C0', alpha=.5, label='classic reco')
     ax1_1.scatter(times, classic_efield_trace, c='C0', alpha=1.)
     ax1_2.plot(freqs, amp_efield_stat_calculator.mean, c='C2')
     ax1_2.plot(freqs, np.abs(fft.time2freq(classic_efield_trace, sampling_rate)), c='C0', alpha=.5)
     ax1_2.scatter(freqs, np.abs(fft.time2freq(classic_efield_trace, sampling_rate)), c='C0', alpha=1.)
-    ax1_3.plot(times, trace_stat_calculator.mean, c='C2', label='max. posterior', zorder=5)
-    ax1_4.plot(freqs, amp_trace_stat_calculator.mean, c='C2', zorder=5)
-
-    ax1_1.set_ylim([1.5*np.min(efield_trace), 1.5*np.max(efield_trace)])
-    ax1_2.set_ylim([0, 1.5*np.max(np.abs(fft.time2freq(efield_trace, sampling_rate)))])
-
     ax1_5.plot(times, efield_stat_calculator.mean - efield_trace, c='C2')
     ax1_5.plot(times, classic_efield_trace - efield_trace, c='C0', alpha=.5)
     ax1_5.scatter(times, classic_efield_trace - efield_trace, c='C0', alpha=1.)
@@ -178,43 +159,64 @@ def plot_reco(
     ax1_6.plot(freqs, np.abs(fft.time2freq(classic_efield_trace, sampling_rate)) - np.abs(fft.time2freq(efield_trace, sampling_rate)), c='C0', alpha=.5)
     ax1_6.scatter(freqs, np.abs(fft.time2freq(classic_efield_trace, sampling_rate)) - np.abs(fft.time2freq(efield_trace, sampling_rate)), c='C0', alpha=1.)
 
-    ax1_7.plot(times, trace_stat_calculator.mean - noiseless_trace, c='C2')
-    ax1_7.plot(times, voltage_trace - noiseless_trace, c='C0', alpha=.5)
-    ax1_7.scatter(times, voltage_trace - noiseless_trace, c='C0', alpha=1.)
-    ax1_8.plot(freqs, np.abs(amp_trace_stat_calculator.mean) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C2')
-    ax1_8.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C0', alpha=.5)
-    ax1_8.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C0', alpha=1.)
+    for i_trace, voltage_trace in enumerate(voltage_traces):
+        ax1_3 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,(7 + 6*i_trace,10 + 6*i_trace))
+        ax1_4 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,(8 + 6*i_trace,11 + 6*i_trace))
+        ax1_7 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,9 + 6*i_trace)
+        ax1_8 = fig1.add_subplot(2 + 2*voltage_traces.shape[0],3,12 + 6*i_trace)
+        ax1_3.plot(times, noiseless_trace, c='C1', label='MC truth', linewidth=5, zorder=0)
+        ax1_3.plot(times, voltage_trace, c='C0', alpha=.2, zorder=10)
+        ax1_3.scatter(times, voltage_trace, c='C0', label='data', zorder=10)
 
-    snr_1 = .5 * (np.max(voltage_trace) - np.min(voltage_trace)) / noise_rms
-    snr_2 = .5 * (np.max(noiseless_trace) - np.min(noiseless_trace)) / noise_rms
+        ax1_4.plot(freqs, np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C1', linewidth=5, zorder=0)
+        ax1_4.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', alpha=.2, zorder=10)
+        ax1_4.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)), c='C0', zorder=10)
+
+
+        ax1_3.plot(times, trace_stat_calculator.mean, c='C2', label='max. posterior', zorder=5)
+        ax1_4.plot(freqs, amp_trace_stat_calculator.mean, c='C2', zorder=5)
+
+        ax1_7.plot(times, trace_stat_calculator.mean - noiseless_trace, c='C2')
+        ax1_7.plot(times, voltage_trace - noiseless_trace, c='C0', alpha=.5)
+        ax1_7.scatter(times, voltage_trace - noiseless_trace, c='C0', alpha=1.)
+        ax1_8.plot(freqs, np.abs(amp_trace_stat_calculator.mean) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C2')
+        ax1_8.plot(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C0', alpha=.5)
+        ax1_8.scatter(freqs, np.abs(fft.time2freq(voltage_trace, sampling_rate)) - np.abs(fft.time2freq(noiseless_trace, sampling_rate)), c='C0', alpha=1.)
+        snr_1 = .5 * (np.max(voltage_trace) - np.min(voltage_trace)) / noise_levels[i_trace]
+        snr_2 = .5 * (np.max(noiseless_trace) - np.min(noiseless_trace)) / noise_levels[i_trace]
+        ax1_3.grid()
+        ax1_3.legend(loc='upper right')
+        ax1_3.text(.55, .05, 'SNR={:.2f}/{:.2f}'.format(snr_1, snr_2), transform=ax1_3.transAxes, bbox=dict(facecolor='white', alpha=.5, ec='white'), fontsize=12)
+        ax1_4.grid()
+        ax1_7.grid()
+        ax1_8.grid()
+        ax1_3.set_xlabel('t [ns]')
+        ax1_3.set_ylabel('U [a.u.]')
+        ax1_4.set_xlabel('f [GHz]')
+        ax1_4.set_ylabel('U [a.u.]')
+        ax1_7.set_xlabel('t [ns]')
+        ax1_7.set_ylabel('U residuals [a.u.]')
+        ax1_8.set_xlabel('f [GHz]')
+        ax1_8.set_ylabel('U residuals [a.u.]')
+
+
+
+    #ax1_1.set_ylim([1.5*np.min(efield_trace), 1.5*np.max(efield_trace)])
+    #ax1_2.set_ylim([0, 1.5*np.max(np.abs(fft.time2freq(efield_trace, sampling_rate)))])
 
     ax1_1.grid()
     ax1_1.legend()
     ax1_2.grid()
-    ax1_3.grid()
-    ax1_3.legend()
-    ax1_3.text(.55, .05, 'SNR={:.2f}/{:.2f}'.format(snr_1, snr_2), transform=ax1_3.transAxes, bbox=dict(facecolor='white', alpha=.5, ec='white'), fontsize=12)
-    ax1_4.grid()
     ax1_5.grid()
     ax1_6.grid()
-    ax1_7.grid()
-    ax1_8.grid()
     ax1_1.set_xlabel('t [ns]')
     ax1_1.set_ylabel('E [a.u.]')
     ax1_2.set_xlabel('f [GHz]')
     ax1_2.set_ylabel('E [a.u.]')
-    ax1_3.set_xlabel('t [ns]')
-    ax1_3.set_ylabel('U [a.u.]')
-    ax1_4.set_xlabel('f [GHz]')
-    ax1_4.set_ylabel('U [a.u.]')
     ax1_5.set_xlabel('t [ns]')
     ax1_5.set_ylabel('E residuals [a.u.]')
     ax1_6.set_xlabel('f [GHz]')
     ax1_6.set_ylabel('E residuals [a.u.]')
-    ax1_7.set_xlabel('t [ns]')
-    ax1_7.set_ylabel('U residuals [a.u.]')
-    ax1_8.set_xlabel('f [GHz]')
-    ax1_8.set_ylabel('U residuals [a.u.]')
 
     fig1.tight_layout()
     fig1.savefig(filename)

@@ -9,30 +9,30 @@ import plotting
 import hardware_operator
 import likelihood
 
-
+N_channels = 4
 max_posterior = False
 energy = 1.e18 * units.eV
 medium = NuRadioMC.utilities.medium.get_ice_model('greenland_simple')
-viewing_angle = .5 * units.deg
+viewing_angle = .2 * units.deg
 samples = 128
 sampling_rate = 1. * units.GHz
 model = 'ARZ2019'
-shower_type = 'EM'
-noise_level = .1
+shower_type = 'HAD'
+noise_level = .2
 passband = [120*units.MHz, 500*units.MHz]
 np.random.seed(42)
 amp_dct = {
-    'n_pix': 32,  #spectral bins
+    'n_pix': 64,  #spectral bins
 
     # Spectral smoothness (affects Gaussian process part)
-    'a':  1.e-4,  # relatively high variance of spectral curbvature
-    'k0': 1.,  # quefrency mode below which cepstrum flattens
+    'a':  .5,  # relatively high variance of spectral curbvature
+    'k0': 2.,  # quefrency mode below which cepstrum flattens
 
     # Power-law part of spectrum:
     'sm': -3.5,  # preferred power-law slope
     'sv': 1.,  # low variance of power-law slope
-    'im':  2.,  # y-intercept mean, in-/decrease for more/less contrast
-    'iv':  1.     # y-intercept variance
+    'im':  -1.,  # y-intercept mean, in-/decrease for more/less contrast
+    'iv':  4.     # y-intercept variance
 }
 phase_dct = {
     'sm': 3.6,
@@ -41,7 +41,7 @@ phase_dct = {
     'iv': 1.5
 }
 
-efield_trace, noiseless_trace, voltage_trace, classic_efield_trace, noise_rms = generate_data.get_traces(
+efield_trace, noiseless_trace, voltage_traces, classic_efield_trace, noise_rms = generate_data.get_traces(
     energy = energy,
     viewing_angle = viewing_angle,
     samples = samples,
@@ -50,12 +50,14 @@ efield_trace, noiseless_trace, voltage_trace, classic_efield_trace, noise_rms = 
     medium =  medium,
     model = model,
     noise_level = noise_level,
-    passband = passband
+    passband = passband,
+    N_channels = N_channels
 )
+voltage_trace = voltage_traces[0]
 plotting.plot_data(
     efield_trace,
     noiseless_trace,
-    voltage_trace,
+    voltage_traces,
     sampling_rate,
     noise_rms,
     'plots/data.png'
@@ -78,7 +80,6 @@ filter_operator = hardware_operator.get_filter_operator(
 )
 
 fft_operator = ift.FFTOperator(frequency_domain.get_default_codomain())
-noise_operator = ift.ScalingOperator(noise_rms**2, frequency_domain.get_default_codomain())
 
 likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator, channel_spec_operator, power_operator = likelihood.get_likelihood(
     amp_dct,
@@ -88,8 +89,8 @@ likelihood, efield_trace_operator, efield_spec_operator, channel_trace_operator,
     amp_operator,
     filter_operator,
     fft_operator,
-    noise_operator,
-    voltage_trace
+    voltage_traces,
+    noise_rms
     )
 plotting.plot_priors(
     efield_spec_operator,
@@ -133,7 +134,7 @@ minimizer = ift.NewtonCG(ic_newton)
 if not max_posterior:
     median = ift.MultiField.full(H.domain, 0.)
 N_iterations = 30
-N_samples = 30
+N_samples = 15
 
 energies = []
 for k in range(N_iterations):
@@ -145,7 +146,7 @@ for k in range(N_iterations):
         KL,
         efield_trace,
         noiseless_trace,
-        voltage_trace,
+        voltage_traces,
         classic_efield_trace,
         efield_trace_operator,
         channel_trace_operator,

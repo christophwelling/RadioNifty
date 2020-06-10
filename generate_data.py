@@ -14,7 +14,8 @@ def get_traces(
         medium,
         model,
         noise_level,
-        passband=None
+        passband=None,
+        N_channels=1,
     ):
     ior = medium.get_index_of_refraction([0,0,-450])
     cherenkov_angle = np.arccos(1./ior)
@@ -56,20 +57,26 @@ def get_traces(
     efield_trace /= trace_max
     noiseless_trace /= trace_max
 
-    noise = np.random.normal(0, noise_level, samples)
-    voltage_trace = noiseless_trace + noise
-    classic_efield_spec = fft.time2freq(voltage_trace, sampling_rate) / (antenna_response * amp_gain * amp_phase / np.max(np.abs(antenna_response*amp_gain)))
-    classic_efield_spec[~np.isfinite(classic_efield_spec)] = 0
-    if passband is not None:
-        classic_efield_spec *= np.abs(h)
+    voltage_traces = np.zeros((N_channels, len(noiseless_trace)))
+    classic_efield_trace = np.zeros(len(efield_trace))
+    noise_rms = np.zeros(N_channels)
+    for i in range(N_channels):
+        noise = np.random.normal(0, noise_level, samples)
+        voltage_trace = noiseless_trace + noise
+        voltage_traces[i] = voltage_trace
+        classic_efield_spec = fft.time2freq(voltage_trace, sampling_rate) / (antenna_response * amp_gain * amp_phase / np.max(np.abs(antenna_response*amp_gain)))
+        classic_efield_spec[~np.isfinite(classic_efield_spec)] = 0
+        if passband is not None:
+            classic_efield_spec *= np.abs(h)
 
-    classic_efield_trace = fft.freq2time(classic_efield_spec, sampling_rate)
-    trace_max = np.max(np.abs(voltage_trace))
+        classic_efield_trace += fft.freq2time(classic_efield_spec, sampling_rate)
+        noise_rms[i] = np.sqrt(np.mean(noise**2))
+    trace_max = np.max(np.abs(voltage_traces))
     efield_trace /= trace_max
     noiseless_trace /= trace_max
-    voltage_trace /= trace_max
+    voltage_traces /= trace_max
     classic_efield_trace /= trace_max
+    classic_efield_trace /= N_channels
     noise /= trace_max
-    noise_rms = np.sqrt(np.mean(noise**2))
 
-    return efield_trace, noiseless_trace, voltage_trace, classic_efield_trace, noise_rms
+    return efield_trace, noiseless_trace, voltage_traces, classic_efield_trace, noise_rms
